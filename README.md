@@ -10,5 +10,5 @@ Check execution using gcc compiler in macOS.
 ```bash
 git clone https://github.com/Seoh2ove/2048.git
 cd {Cloned_full_path}
-gcc main.c -o test4 && "{Cloned_full_path}"main
+gcc main.c -o main && "{Cloned_full_path}"main
 ```
