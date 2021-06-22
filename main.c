@@ -24,9 +24,9 @@
 #define LEFT 'a'
 #define RIGHT 'd'
 
-#define MAX_BLOCK_NUMBER 8
-#define GAME_BOARD_SIZE 4
-#define TIME 300 // 300 Seconds
+#define MAX_BLOCK_NUMBER 2048
+#define GAME_BOARD_SIZE 5
+#define TIME 600 // Seconds
 
 typedef enum _GameStatus
 {
@@ -79,7 +79,7 @@ void print_ranking();
 void press_key_to_continue();
 int file_exists();
 int kbhit();
-p_Game create_new_game(p_Game, int);
+p_Game create_new_game(p_Game);
 p_Timer stopWatch(p_Timer);
 void start_game(p_Game);
 void add_score_to_rank(p_Game, p_Timer, const char *);
@@ -109,7 +109,7 @@ int main(void)
             switch (select)
             {
             case '1':
-                game = create_new_game(game, GAME_BOARD_SIZE);
+                game = create_new_game(game);
                 start_game(game);
                 break;
             case '2':
@@ -124,7 +124,7 @@ int main(void)
         }
         usleep(100000);
     } while (select != '4');
-
+    free(game);
     return 0;
 }
 
@@ -296,16 +296,16 @@ int kbhit(void)
     return 0;
 }
 
-p_Game create_new_game(p_Game game, int size)
+p_Game create_new_game(p_Game game)
 {
     const int generate_number_max = 2;
-    int **board = malloc(size * sizeof(int *));
+    int **board = malloc(GAME_BOARD_SIZE * sizeof(int *));
     int count;
 
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < GAME_BOARD_SIZE; i++)
     {
-        board[i] = malloc(size * sizeof(int));
-        for (int j = 0; j < size; j++)
+        board[i] = malloc(GAME_BOARD_SIZE * sizeof(int));
+        for (int j = 0; j < GAME_BOARD_SIZE; j++)
         {
             board[i][j] = 0;
         }
@@ -313,20 +313,20 @@ p_Game create_new_game(p_Game game, int size)
     // Places numbers in random locations.
     for (int i = 0; i < generate_number_max; i++)
     {
-        int pos = (rand() % size * size);
+        int pos = (rand() % GAME_BOARD_SIZE * GAME_BOARD_SIZE);
         count = 0;
-        for (int j = 0; j < size * size; j++)
+        for (int j = 0; j < GAME_BOARD_SIZE * GAME_BOARD_SIZE; j++)
         {
             if (pos == count)
             {
                 int start_number = (rand() & 1) ? 2 : 4;
-                board[j / size][j % size] = start_number;
+                board[j / GAME_BOARD_SIZE][j % GAME_BOARD_SIZE] = start_number;
             }
             count++;
         }
     }
     game->board = board;
-    game->board_size = size;
+    game->board_size = GAME_BOARD_SIZE;
     game->score = 0;
     game->combo = 0;
     game->max_combo = 0;
@@ -342,7 +342,7 @@ p_Timer stopWatch(p_Timer timer)
     total_seconds = timer->set_time - end_time;
     timer->current_time = total_seconds;
 
-    gotoxy(25, 4);
+    gotoxy(30, 5);
     printf("Time Remaining: %02d:%02d\n", (total_seconds / 60), (total_seconds % 60));
 
     if (total_seconds == 0)
@@ -352,8 +352,6 @@ p_Timer stopWatch(p_Timer timer)
 
 void start_game(p_Game game)
 {
-    CLEAR_CONSOLE();
-
     int comboCount, moveResult, moveCount, blankAmount;
     char key;
 
@@ -365,6 +363,7 @@ void start_game(p_Game game)
 
     do
     {
+        CLEAR_CONSOLE();
         timer = stopWatch(timer);
 
         if (timer->stop == TRUE)
@@ -396,7 +395,7 @@ void start_game(p_Game game)
         usleep(100000);
     } while (game->game_status == GAME_IN_PROGRESS);
 
-    gotoxy(25, 5);
+    gotoxy(30, 7);
     if (game->game_status == GAME_CLEAR)
         printf("CLEAR!!\n");
     if (game->game_status == GAME_OVER)
@@ -404,16 +403,22 @@ void start_game(p_Game game)
 
     char *user_name = malloc(sizeof(char) * 100);
 
-    gotoxy(0, 12);
-    printf("%d %d\n", game->movement_count, game->max_combo);
+    gotoxy(0, 13);
     printf("Enter your name: ");
     scanf("%[^\n]s", user_name);
 
+    printf("\n");
     printf("Your score will be updated in the ranking.\n");
     add_score_to_rank(game, timer, user_name);
-    printf("Press any key to continue...\n");
-    press_key_to_continue();
+    printf("back to the main menu after a second...\n");
     sleep(1);
+
+    for (int i = 0; i < GAME_BOARD_SIZE; i++)
+    {
+        free(game->board[i]);
+    }
+    free(user_name);
+    free(timer);
 }
 
 void add_score_to_rank(p_Game game, p_Timer timer, const char *username)
@@ -440,14 +445,13 @@ void add_score_to_rank(p_Game game, p_Timer timer, const char *username)
 /**
  * Print the game board to the console.
  * @param board Game board.
- * @param size Board size.
  */
 void draw_interface(p_Game game)
 {
     gotoxy(0, 0);
     for (int i = 0; i < game->board_size; i++)
     {
-        printf("|----|----|----|----|\n");
+        printf("|----|----|----|----|----|\n");
         for (int j = 0; j < game->board_size; j++)
         {
             char buffer[10];
@@ -456,22 +460,19 @@ void draw_interface(p_Game game)
             int space = 4 - str_length;
             if (game->board[i][j] == 0)
             {
-                // printf("|   x");
-                printf("|   .");
+                printf("|    ");
             }
             else
             {
                 printf("|%*d", space + str_length, game->board[i][j]);
-                // printf(" %*d", space + str_length, game->board[i][j]);
             }
         }
         printf("|\n");
-        // printf(" \n");
     }
-    printf("|----|----|----|----|\n");
-    gotoxy(25, 2);
+    printf("|----|----|----|----|----|\n");
+    gotoxy(30, 2);
     printf("Your score: %d", game->score);
-    gotoxy(25, 3);
+    gotoxy(30, 3);
     if (game->combo != 0)
     {
         printf("%d Combo !", game->combo);
@@ -521,14 +522,6 @@ void processing(p_Game game, char key)
     }
 }
 
-/**
- * @brief s
- * @param board Game board
- * @param size Board size
- * @param moveCount
- * @param direction
- * @return int
- */
 int move_blocks(p_Game game, int *moveCount, char direction)
 {
     boolean done = TRUE;
@@ -601,14 +594,6 @@ int move_blocks(p_Game game, int *moveCount, char direction)
     return done;
 }
 
-/**
- * @brief Merge if there is the same number in the direction you want to move.
- *
- * @param board Game board
- * @param size Size of board
- * @param moveCount Number of times the block has moved
- * @param direction The direction to merge.
- */
 void mergeBlocks(p_Game game, int *moveCount, int *comboCount, char direction)
 {
     switch (direction)
@@ -702,18 +687,12 @@ boolean check_game_over(p_Game game)
         {
             if (game->board[i][j] == game->board[i][j + 1])
                 return FALSE;
-        }
-    }
-    // Check column
-    for (int i = 0; i < game->board_size - 1; i++)
-    {
-        for (int j = 0; j < game->board_size; j++)
-        {
             if (game->board[j][i] == game->board[j][i + 1])
+                return FALSE;
+            if (game->board[i][j] == 0)
                 return FALSE;
         }
     }
-
     return TRUE;
 }
 
@@ -752,23 +731,8 @@ int getBlankCount(p_Game game)
     return count;
 }
 
-/*
-char get_keyboard_input()
-{
-    char key;
-    scanf(" %c", &key);
-
-    if (key < 'a')
-    {
-        key -= 32;
-    }
-
-    return key;
-}
-*/
-
 /**
- * @brief
+ * @brief Moves the console cursor to the specified location.
  *
  * @param x
  * @param y
