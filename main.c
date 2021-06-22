@@ -24,7 +24,7 @@
 #define LEFT 'a'
 #define RIGHT 'd'
 
-#define MAX_BLOCK_NUMBER 2048
+#define MAX_BLOCK_NUMBER 32
 #define GAME_BOARD_SIZE 5
 #define TIME 600 // Seconds
 
@@ -64,6 +64,7 @@ struct score
 {
     char *user_name;
     char *game_status;
+    int score;
     int number_of_moves;
     int elapsed_time;
     int max_combo;
@@ -74,6 +75,8 @@ const char *FILE_PATH = "ranking.txt";
 void print_title();
 void print_main_menu_component();
 void print_how_to();
+int compare1(const void *, const void *);
+int compare2(const void *, const void *);
 int get_data_from_file();
 void print_ranking();
 void press_key_to_continue();
@@ -164,15 +167,39 @@ void print_how_to()
     press_key_to_continue();
 }
 
-int compare(const void *target1, const void *target2)
+int compare1(const void *target1, const void *target2)
 {
     struct score *score1 = (struct score *)target1;
     struct score *score2 = (struct score *)target2;
-    if (score1->elapsed_time > score2->elapsed_time)
+
+    if (strcmp(score1->game_status, "Lose") < strcmp(score2->game_status, "Clear"))
         return -1;
-    if (score1->elapsed_time < score2->elapsed_time)
+    if (strcmp(score1->game_status, "Clear") > strcmp(score2->game_status, "Lose"))
         return 1;
     return 0;
+}
+
+int compare2(const void *target1, const void *target2)
+{
+    struct score *score1 = (struct score *)target1;
+    struct score *score2 = (struct score *)target2;
+
+    if (!strcmp(score1->game_status, "Clear") && !strcmp(score2->game_status, "Clear"))
+    {
+        if (score1->elapsed_time > score2->elapsed_time)
+            return -1;
+        if (score1->elapsed_time < score2->elapsed_time)
+            return 1;
+        return 0;
+    }
+    else
+    {
+        if (score1->score > score2->score)
+            return -1;
+        if (score1->score < score2->score)
+            return 1;
+        return 0;
+    }
 }
 
 int get_data_from_file()
@@ -182,7 +209,7 @@ int get_data_from_file()
     char user_name[20];
     char game_status[15];
     char line_buffer[256];
-    int number_of_moves, elapsed_time, max_combo;
+    int number_of_moves, elapsed_time, max_combo, score;
 
     FILE *fp = fopen(FILE_PATH, "r");
     if (fp == NULL)
@@ -196,10 +223,12 @@ int get_data_from_file()
 
     while (fgets(line_buffer, sizeof(line_buffer), fp))
     {
-        if (fscanf(fp, "%20[^,] %s %d %d %d", user_name, game_status, &number_of_moves, &elapsed_time, &max_combo) == 5)
+        if (fscanf(fp, "%20[^,] %s %d %d %d %d", user_name, game_status, &score, &number_of_moves, &elapsed_time,
+                   &max_combo) == 6)
         {
             data[idx].user_name = strdup(user_name);
             data[idx].game_status = strdup(game_status);
+            data[idx].score = score;
             data[idx].number_of_moves = number_of_moves;
             data[idx].elapsed_time = elapsed_time;
             data[idx].max_combo = max_combo;
@@ -209,13 +238,14 @@ int get_data_from_file()
 
     fclose(fp);
 
-    qsort(data, idx, sizeof *data, compare);
-    printf("%-20s %-7s %-7s %-5s  %-15s\n", "Name", "Status", "Moves", "Elapsed time", "Max combo");
+    qsort(data, idx, sizeof *data, compare1);
+    qsort(data, idx, sizeof *data, compare2);
+    printf("%-20s %-7s %-7s %-7s %-5s  %-15s\n", "Name", "Status", "Score", "Moves", "Elapsed time", "Max combo");
     for (int i = 0; i < idx; i++)
     {
         int m = (TIME - data[i].elapsed_time) / 60;
         int s = (TIME - data[i].elapsed_time) % 60;
-        printf("%-20s %-7s %-7d %02d:%02d         %-15d\n", data[i].user_name, data[i].game_status,
+        printf("%-20s %-7s %-7d %-7d %02d:%02d         %-15d\n", data[i].user_name, data[i].game_status, data[i].score,
                data[i].number_of_moves, m, s, data[i].max_combo);
     }
     printf("\n");
@@ -369,7 +399,7 @@ void start_game(p_Game game)
         if (timer->stop == TRUE)
             game->game_status = GAME_OVER;
 
-        gotoxy(0, 0);
+        // gotoxy(0, 0);
         draw_interface(game);
 
         if (kbhit())
@@ -429,15 +459,15 @@ void add_score_to_rank(p_Game game, p_Timer timer, const char *username)
     if (!file_exists(FILE_PATH))
     {
         fp = fopen(FILE_PATH, "w");
-        fprintf(fp, "%-20s %-15s %-15s %-15s %-15s\n", "Name", "Status", "Number of moves", "Elapsed time",
-                "Max combo");
+        fprintf(fp, "%-20s %-15s %-15s %-15s %-15s %-15s\n", "Name", "Status", "Score", "Number of moves",
+                "Elapsed time", "Max combo");
         fclose(fp);
     }
 
     game_status = game->game_status == GAME_CLEAR ? "Clear" : "Lose";
     fp = fopen(FILE_PATH, "a");
-    fprintf(fp, "%-20s %-15s %-15d %-15d %-15d\n", username, game_status, game->movement_count, timer->current_time,
-            game->max_combo);
+    fprintf(fp, "%-20s %-15s %-15d %-15d %-15d %-15d\n", username, game_status, game->score, game->movement_count,
+            timer->current_time, game->max_combo);
 
     fclose(fp);
 }
