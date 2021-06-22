@@ -214,7 +214,6 @@ int get_data_from_file()
     FILE *fp = fopen(FILE_PATH, "r");
     if (fp == NULL)
     {
-        // gotoxy();
         printf("Ranking data not found.\n");
         return FALSE;
     }
@@ -394,12 +393,13 @@ void start_game(p_Game game)
     do
     {
         CLEAR_CONSOLE();
+        gotoxy(0, 0);
+
         timer = stopWatch(timer);
 
         if (timer->stop == TRUE)
             game->game_status = GAME_OVER;
 
-        // gotoxy(0, 0);
         draw_interface(game);
 
         if (kbhit())
