@@ -170,11 +170,10 @@ int compare1(const void *target1, const void *target2)
 {
     struct score *score1 = (struct score *)target1;
     struct score *score2 = (struct score *)target2;
-
-    if (strcmp(score1->game_status, "Lose") < strcmp(score2->game_status, "Clear"))
-        return -1;
-    if (strcmp(score1->game_status, "Clear") > strcmp(score2->game_status, "Lose"))
+    if (strcmp(score1->game_status, "Lose") > strcmp(score2->game_status, "Clear"))
         return 1;
+    if (strcmp(score1->game_status, "Clear") < strcmp(score2->game_status, "Lose"))
+        return -1;
     return 0;
 }
 
@@ -237,7 +236,7 @@ int get_data_from_file()
     fclose(fp);
 
     qsort(data, idx, sizeof *data, compare1);
-    qsort(data, idx, sizeof *data, compare2);
+    // qsort(data, idx, sizeof *data, compare2);
     printf("%-20s %-7s %-7s %-7s %-5s  %-15s\n", "Name", "Status", "Score", "Moves", "Elapsed time", "Max combo");
     for (int i = 0; i < idx; i++)
     {
@@ -394,6 +393,17 @@ void start_game(p_Game game)
         CLEAR_CONSOLE();
         gotoxy(0, 0);
 
+        if (check_game_clear(game))
+        {
+            draw_interface(game);
+            game->game_status = GAME_CLEAR;
+        }
+        if (check_game_over(game))
+        {
+            draw_interface(game);
+            game->game_status = GAME_OVER;
+        }
+
         timer = stopWatch(timer);
 
         if (timer->stop == TRUE)
@@ -409,18 +419,6 @@ void start_game(p_Game game)
             if (key == 'q')
                 game->game_status = GAME_OVER;
         }
-
-        if (check_game_clear(game))
-        {
-            draw_interface(game);
-            game->game_status = GAME_CLEAR;
-        }
-        if (check_game_over(game))
-        {
-            draw_interface(game);
-            game->game_status = GAME_OVER;
-        }
-
         usleep(100000);
     } while (game->game_status == GAME_IN_PROGRESS);
 
@@ -716,8 +714,14 @@ boolean check_game_over(p_Game game)
         {
             if (game->board[i][j] == game->board[i][j + 1])
                 return FALSE;
-            if (game->board[j][i] == game->board[j][i + 1])
+            if (game->board[j][i] == game->board[j + 1][i])
                 return FALSE;
+        }
+    }
+    for (int i = 0; i < game->board_size; i++)
+    {
+        for (int j = 0; j < game->board_size; j++)
+        {
             if (game->board[i][j] == 0)
                 return FALSE;
         }
