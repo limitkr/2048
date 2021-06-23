@@ -24,7 +24,7 @@
 #define LEFT 'a'
 #define RIGHT 'd'
 
-#define MAX_BLOCK_NUMBER 32
+#define MAX_BLOCK_NUMBER 2048
 #define GAME_BOARD_SIZE 5
 #define TIME 600 // Seconds
 
@@ -46,7 +46,6 @@ typedef struct timer
     int set_time;
     int current_time;
     boolean stop;
-
 } Timer, *p_Timer;
 
 typedef struct game
@@ -92,8 +91,8 @@ int move_blocks(p_Game, int *, char);
 void mergeBlocks(p_Game, int *, int *, char);
 boolean check_game_clear(p_Game);
 boolean check_game_over(p_Game);
-void addNewNumber(p_Game, int);
-int getBlankCount(p_Game);
+void add_new_number(p_Game, int);
+int get_blank_count(p_Game);
 // char get_keyboard_input();
 void gotoxy(int, int);
 
@@ -512,7 +511,7 @@ void draw_interface(p_Game game)
         // Remove combo count on console.
         printf("                        ");
     }
-    gotoxy(0, 12);
+    gotoxy(0, 13);
     printf("Key: ");
 }
 
@@ -541,8 +540,8 @@ void processing(p_Game game, char key)
     // Add new number elements in board.
     if (moveCount != 0)
     {
-        blankAmount = getBlankCount(game);
-        addNewNumber(game, blankAmount);
+        blankAmount = get_blank_count(game);
+        add_new_number(game, blankAmount);
         if (comboCount != 0)
         {
             game->combo += comboCount;
@@ -726,7 +725,7 @@ boolean check_game_over(p_Game game)
     return TRUE;
 }
 
-void addNewNumber(p_Game game, int blankAmount)
+void add_new_number(p_Game game, int blankAmount)
 {
     int randomPos = (rand() % blankAmount);
     int count = -1;
@@ -746,7 +745,7 @@ void addNewNumber(p_Game game, int blankAmount)
     }
 }
 
-int getBlankCount(p_Game game)
+int get_blank_count(p_Game game)
 {
     int count = 0;
     for (int i = 0; i < game->board_size; i++)
